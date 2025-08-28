@@ -6,23 +6,20 @@
 
 克隆本仓库并构建专属镜像，便于长期使用和扩展。
 
-### 1. 克隆项目
-
 ```bash
-git clone https://github.com/hjki156/PWN.git
-cd PWN
-```
+# 构建镜像
+docker build -t ctf-pwn:latest .
 
-### 2. 构建镜像
+# 运行容器
+docker run -it --rm \
+  -v $(pwd)/challenges:/root/CTF/challenges \
+  -p 1337:1337 \
+  ctf-pwn:latest
 
-```bash
-docker build -t pwn-env .
-```
-
-### 3. 启动容器
-
-```bash
-docker run -it pwn-env
+# 以pwner用户身份运行
+docker run -it --rm --user pwner \
+  -v $(pwd)/challenges:/home/pwner/CTF/challenges \
+  ctf-pwn:latest
 ```
 
 ## Features

@@ -31,7 +31,6 @@ RUN apt-get update && \
         # 调试工具
         gdb \
         gdb-multiarch \
-        radare2 \
         strace \
         ltrace \
         # 二进制分析工具
@@ -39,8 +38,7 @@ RUN apt-get update && \
         patchelf \
         file \
         xxd \
-        hexdump \
-        objdump \
+        bsdextrautils \
         # 终端和编辑器
         tmux \
         neovim \
@@ -65,6 +63,13 @@ RUN apt-get update && \
     # 清理apt缓存
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
+
+# 手动安装radare2（因为Ubuntu 22.04仓库中没有）
+RUN wget -q https://github.com/radareorg/radare2/releases/download/5.9.0/radare2_5.9.0_amd64.deb && \
+    dpkg -i radare2_5.9.0_amd64.deb || true && \
+    apt-get update && \
+    apt-get -f install -y && \
+    rm radare2_5.9.0_amd64.deb
 
 # 安装Ruby工具
 RUN gem install seccomp-tools one_gadget && \
@@ -93,7 +98,7 @@ RUN curl -s -o /usr/local/bin/checksec https://raw.githubusercontent.com/slimm60
     chmod +x /usr/local/bin/checksec
 
 # 安装GEF（GDB增强框架）
-RUN wget -O /tmp/gef.py https://github.com/hugsy/gef/raw/main/scripts/gef.py && \
+RUN wget -O /tmp/gef.py https://github.com/hugsy/gef/raw/main/gef.py && \
     # 为root用户配置GEF
     echo 'source /tmp/gef.py' > /root/.gdbinit && \
     echo 'set disassembly-flavor intel' >> /root/.gdbinit && \
@@ -125,14 +130,14 @@ WORKDIR /root/CTF
 # 安装WebSocketReflectorX工具
 RUN set -eux; \
     # 获取最新版本标签
-    LATEST_TAG=$$(curl -s "https://api.github.com/repos/XDSEC/WebSocketReflectorX/releases/latest" | \
+    LATEST_TAG=$(curl -s "https://api.github.com/repos/XDSEC/WebSocketReflectorX/releases/latest" | \
                  grep '"tag_name"' | \
                  cut -d '"' -f 4); \
-    echo "正在安装 WebSocketReflectorX 版本: $${LATEST_TAG}"; \
+    echo "正在安装 WebSocketReflectorX 版本: ${LATEST_TAG}"; \
     # 构建下载URL
-    DOWNLOAD_URL="https://github.com/XDSEC/WebSocketReflectorX/releases/download/$${LATEST_TAG}/wsrx-cli-$${LATEST_TAG}-linux-musl-x86_64.tar.gz"; \
+    DOWNLOAD_URL="https://github.com/XDSEC/WebSocketReflectorX/releases/download/${LATEST_TAG}/wsrx-cli-${LATEST_TAG}-linux-musl-x86_64.tar.gz"; \
     # 下载并解压
-    curl -L "$${DOWNLOAD_URL}" -o wsrx-cli.tar.gz && \
+    curl -L "${DOWNLOAD_URL}" -o wsrx-cli.tar.gz && \
     tar -xzf wsrx-cli.tar.gz && \
     rm wsrx-cli.tar.gz && \
     chmod +x wsrx && \

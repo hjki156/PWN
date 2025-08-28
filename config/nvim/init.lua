@@ -1,3 +1,7 @@
+-- ===================================================================
+-- CTF PWN 优化 Neovim 配置
+-- ===================================================================
+
 -- 确保 packer 自动安装
 local ensure_packer = function()
   local fn = vim.fn
@@ -5,60 +9,258 @@ local ensure_packer = function()
   if fn.empty(fn.glob(install_path)) > 0 then
     fn.system({'git', 'clone', '--depth', '1', 'https://github.com/wbthomason/packer.nvim', install_path})
     vim.cmd [[packadd packer.nvim]]
+    return true
   end
+  return false
 end
 
--- 安装 packer（如果还没有）
-ensure_packer()
+local packer_bootstrap = ensure_packer()
 
 -- 使用 Lua 配置插件
 require('packer').startup(function(use)
-  use 'wbthomason/packer.nvim'  -- 包管理器
-  require('plugins')             -- 加载你的插件列表
+  use 'wbthomason/packer.nvim'
+  
+  -- ===============================
+  -- 基础插件
+  -- ===============================
+  use 'tpope/vim-fugitive'        -- Git 集成
+  use 'tpope/vim-commentary'      -- 快速注释 gcc
+  use 'tpope/vim-surround'        -- 快速修改包围符号
+  
+  -- ===============================
+  -- 文件管理和搜索
+  -- ===============================
+  use {
+    'nvim-telescope/telescope.nvim',
+    requires = { 'nvim-lua/plenary.nvim' }
+  }
+  use 'nvim-tree/nvim-tree.lua'   -- 文件树
+  use 'nvim-tree/nvim-web-devicons' -- 图标支持
+  
+  -- ===============================
+  -- LSP 和补全
+  -- ===============================
+  use 'neovim/nvim-lspconfig'
+  use 'hrsh7th/nvim-cmp'
+  use 'hrsh7th/cmp-nvim-lsp'
+  use 'hrsh7th/cmp-buffer'
+  use 'hrsh7th/cmp-path'
+  use 'hrsh7th/cmp-cmdline'
+  use 'L3MON4D3/LuaSnip'
+  use 'saadparwaiz1/cmp_luasnip'
+  
+  -- ===============================
+  -- PWN 特化插件
+  -- ===============================
+  use 'vim-scripts/hexman.vim'    -- 十六进制编辑
+  use 'fidian/hexmode'            -- 十六进制模式切换
+  
+  -- ===============================
+  -- 语法高亮和主题
+  -- ===============================
+  use {
+    'nvim-treesitter/nvim-treesitter',
+    run = function()
+      local ts_update = require('nvim-treesitter.install').update({ with_sync = true })
+      ts_update()
+    end,
+  }
+  use 'morhetz/gruvbox'           -- 护眼主题
+  use 'folke/tokyonight.nvim'     -- 现代主题
+  
+  -- ===============================
+  -- 状态栏和界面
+  -- ===============================
+  use {
+    'nvim-lualine/lualine.nvim',
+    requires = { 'nvim-tree/nvim-web-devicons', opt = true }
+  }
+  use 'akinsho/bufferline.nvim'   -- Buffer 标签
+  
+  -- ===============================
+  -- 调试支持
+  -- ===============================
+  use 'mfussenegger/nvim-dap'
+  use 'rcarriga/nvim-dap-ui'
+  use 'mfussenegger/nvim-dap-python'
+  
+  -- ===============================
+  -- 终端集成
+  -- ===============================
+  use 'akinsho/toggleterm.nvim'
+  
+  -- 自动同步插件（首次安装后）
+  if packer_bootstrap then
+    require('packer').sync()
+  end
 end)
 
 -----------------------------------------------------------
 -- 基础设置
 -----------------------------------------------------------
-vim.opt.number = true          -- 显示行号
+local opt = vim.opt
 
--- 设置缩进为 2 个空格
+-- 行号和界面
+opt.number = true
+opt.relativenumber = true       -- 相对行号，方便跳转
+opt.cursorline = true          -- 高亮当前行
+opt.colorcolumn = "80"         -- 80列提示线
 
-vim.opt.tabstop = 2
-vim.opt.shiftwidth = 2
-vim.opt.expandtab = true
-vim.opt.softtabstop = 2 
+-- 缩进设置（适合Python和汇编）
+opt.tabstop = 4
+opt.shiftwidth = 4
+opt.expandtab = true
+opt.softtabstop = 4
+opt.smartindent = true
+opt.autoindent = true
 
-vim.opt.smartindent = true     -- 智能缩进
+-- 搜索设置
+opt.hlsearch = true
+opt.incsearch = true
+opt.ignorecase = true
+opt.smartcase = true
 
--- 启用语法高亮
-vim.opt.syntax = 'on'
+-- 文件处理
+opt.backup = false
+opt.writebackup = false
+opt.swapfile = false
+opt.undofile = true            -- 持久化撤销
+
+-- 界面优化
+opt.wrap = false               -- 不自动换行
+opt.scrolloff = 8              -- 保持8行可见
+opt.sidescrolloff = 8
+opt.signcolumn = "yes"         -- 始终显示符号列
+opt.termguicolors = true       -- 真彩色支持
+
+-- 分割窗口
+opt.splitbelow = true
+opt.splitright = true
+
+-- 鼠标支持
+opt.mouse = "a"
+
+-- 剪贴板
+opt.clipboard = "unnamedplus"
+
+-----------------------------------------------------------
+-- 主题配置
+-----------------------------------------------------------
+-- 设置主题（可选gruvbox或tokyonight）
+vim.cmd([[
+  try
+    colorscheme gruvbox
+    set background=dark
+  catch
+    colorscheme default
+  endtry
+]])
+
+-----------------------------------------------------------
+-- 键位映射 (适合PWN工作流)
+-----------------------------------------------------------
+local keymap = vim.keymap.set
+local opts = { noremap = true, silent = true }
+
+-- Leader 键
+vim.g.mapleader = " "
+
+-- 快速保存和退出
+keymap("n", "<leader>w", ":w<CR>", opts)
+keymap("n", "<leader>q", ":q<CR>", opts)
+keymap("n", "<leader>x", ":x<CR>", opts)
+
+-- 窗口管理
+keymap("n", "<leader>sv", ":vsplit<CR>", opts)     -- 垂直分割
+keymap("n", "<leader>sh", ":split<CR>", opts)      -- 水平分割
+keymap("n", "<C-h>", "<C-w>h", opts)               -- 左窗口
+keymap("n", "<C-j>", "<C-w>j", opts)               -- 下窗口
+keymap("n", "<C-k>", "<C-w>k", opts)               -- 上窗口
+keymap("n", "<C-l>", "<C-w>l", opts)               -- 右窗口
+
+-- Buffer 管理
+keymap("n", "<Tab>", ":bnext<CR>", opts)
+keymap("n", "<S-Tab>", ":bprev<CR>", opts)
+keymap("n", "<leader>bd", ":bdelete<CR>", opts)
+
+-- 文件树
+keymap("n", "<leader>e", ":NvimTreeToggle<CR>", opts)
+
+-- Telescope 搜索
+keymap("n", "<leader>ff", ":Telescope find_files<CR>", opts)
+keymap("n", "<leader>fg", ":Telescope live_grep<CR>", opts)
+keymap("n", "<leader>fb", ":Telescope buffers<CR>", opts)
+
+-- 终端
+keymap("n", "<leader>tt", ":ToggleTerm<CR>", opts)
+keymap("t", "<Esc>", "<C-\\><C-n>", opts)          -- 终端模式退出
+
+-- PWN 特定功能
+keymap("n", "<leader>hx", ":Hexmode<CR>", opts)    -- 十六进制模式
+keymap("n", "<leader>py", ":!python3 %<CR>", opts) -- 运行Python
+keymap("n", "<leader>gdb", ":TermExec cmd='gdb %:r'<CR>", opts) -- 启动GDB
+
+-- 快速编辑常见文件类型模板
+keymap("n", "<leader>pe", ":e exploit.py<CR>", opts)
+keymap("n", "<leader>ps", ":e solve.py<CR>", opts)
 
 -----------------------------------------------------------
 -- 补全设置 (nvim-cmp)
 -----------------------------------------------------------
 local cmp = require('cmp')
+local luasnip = require('luasnip')
 
 cmp.setup({
   snippet = {
     expand = function(args)
-      -- 这里可以集成 luasnip，但我们先简化
+      luasnip.lsp_expand(args.body)
     end,
   },
   mapping = cmp.mapping.preset.insert({
-    ['<C-Space>'] = cmp.mapping.complete(),  -- Ctrl+Space 触发补全
-    ['<CR>'] = cmp.mapping.confirm({ select = false }), -- 回车确认
-    ['<Tab>'] = cmp.mapping.select_next_item(),
-    ['<S-Tab>'] = cmp.mapping.select_prev_item(),
+    ['<C-d>'] = cmp.mapping.scroll_docs(-4),
+    ['<C-f>'] = cmp.mapping.scroll_docs(4),
+    ['<C-Space>'] = cmp.mapping.complete(),
+    ['<C-e>'] = cmp.mapping.close(),
+    ['<CR>'] = cmp.mapping.confirm({
+      behavior = cmp.ConfirmBehavior.Replace,
+      select = true,
+    }),
+    ['<Tab>'] = cmp.mapping(function(fallback)
+      if cmp.visible() then
+        cmp.select_next_item()
+      elseif luasnip.expand_or_jumpable() then
+        luasnip.expand_or_jump()
+      else
+        fallback()
+      end
+    end, { 'i', 's' }),
+    ['<S-Tab>'] = cmp.mapping(function(fallback)
+      if cmp.visible() then
+        cmp.select_prev_item()
+      elseif luasnip.jumpable(-1) then
+        luasnip.jump(-1)
+      else
+        fallback()
+      end
+    end, { 'i', 's' }),
   }),
   sources = cmp.config.sources({
-    { name = 'nvim_lsp' },      -- 来自 LSP 的补全（如 pyright）
-    { name = 'buffer' },        -- 当前文件中的词
-    { name = 'path' },          -- 文件路径
+    { name = 'nvim_lsp' },
+    { name = 'luasnip' },
+  }, {
+    { name = 'buffer' },
+    { name = 'path' },
   })
 })
 
--- 如果没有补全项，回车直接插入
+-- 命令行补全
+cmp.setup.cmdline('/', {
+  mapping = cmp.mapping.preset.cmdline(),
+  sources = {
+    { name = 'buffer' }
+  }
+})
+
 cmp.setup.cmdline(':', {
   mapping = cmp.mapping.preset.cmdline(),
   sources = cmp.config.sources({
@@ -69,11 +271,32 @@ cmp.setup.cmdline(':', {
 })
 
 -----------------------------------------------------------
--- 启用 Python 的 LSP (pyright)
+-- LSP 配置
 -----------------------------------------------------------
 local lspconfig = require('lspconfig')
 
+-- LSP 按键映射
+local on_attach = function(client, bufnr)
+  local bufopts = { noremap=true, silent=true, buffer=bufnr }
+  keymap('n', 'gD', vim.lsp.buf.declaration, bufopts)
+  keymap('n', 'gd', vim.lsp.buf.definition, bufopts)
+  keymap('n', 'K', vim.lsp.buf.hover, bufopts)
+  keymap('n', 'gi', vim.lsp.buf.implementation, bufopts)
+  keymap('n', '<C-k>', vim.lsp.buf.signature_help, bufopts)
+  keymap('n', '<leader>rn', vim.lsp.buf.rename, bufopts)
+  keymap('n', '<leader>ca', vim.lsp.buf.code_action, bufopts)
+  keymap('n', 'gr', vim.lsp.buf.references, bufopts)
+  keymap('n', '<leader>f', function() vim.lsp.buf.format { async = true } end, bufopts)
+  
+  print("✅ LSP 已启动: " .. client.name)
+end
+
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
+
+-- Python LSP
 lspconfig.pyright.setup {
+  on_attach = on_attach,
+  capabilities = capabilities,
   settings = {
     python = {
       analysis = {
@@ -82,12 +305,161 @@ lspconfig.pyright.setup {
         diagnosticMode = "workspace",
       }
     }
-  },
-  -- 启动时提示
-  on_attach = function()
-    print("✅ Python LSP (pyright) 已启动")
-  end
+  }
 }
 
--- 可选：F12 跳转到定义
-vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { desc = 'Go to definition' })
+-- C/C++ LSP (clangd)
+lspconfig.clangd.setup {
+  on_attach = on_attach,
+  capabilities = capabilities,
+}
+
+-----------------------------------------------------------
+-- 插件配置
+-----------------------------------------------------------
+
+-- NvimTree
+require("nvim-tree").setup({
+  sort_by = "case_sensitive",
+  view = {
+    adaptive_size = true,
+  },
+  renderer = {
+    group_empty = true,
+  },
+  filters = {
+    dotfiles = false,  -- 显示隐藏文件
+  },
+})
+
+-- Lualine 状态栏
+require('lualine').setup {
+  options = {
+    icons_enabled = true,
+    theme = 'gruvbox',
+  },
+  sections = {
+    lualine_a = {'mode'},
+    lualine_b = {'branch', 'diff', 'diagnostics'},
+    lualine_c = {'filename'},
+    lualine_x = {'encoding', 'fileformat', 'filetype'},
+    lualine_y = {'progress'},
+    lualine_z = {'location'}
+  },
+}
+
+-- Bufferline
+require("bufferline").setup{}
+
+-- ToggleTerm
+require("toggleterm").setup{
+  size = 15,
+  open_mapping = [[<c-\>]],
+  hide_numbers = true,
+  direction = 'horizontal',
+  shell = vim.o.shell,
+}
+
+-- Treesitter
+require'nvim-treesitter.configs'.setup {
+  ensure_installed = { "c", "python", "lua", "vim", "bash" },
+  sync_install = false,
+  auto_install = true,
+  highlight = {
+    enable = true,
+  },
+}
+
+-----------------------------------------------------------
+-- PWN 特定设置和自动命令
+-----------------------------------------------------------
+
+-- 自动命令组
+local augroup = vim.api.nvim_create_augroup
+local autocmd = vim.api.nvim_create_autocmd
+
+-- PWN 文件类型检测和设置
+augroup("PwnFiles", {})
+autocmd({"BufNewFile", "BufRead"}, {
+  group = "PwnFiles",
+  pattern = {"*.asm", "*.s"},
+  command = "set filetype=asm syntax=nasm"
+})
+
+autocmd({"BufNewFile", "BufRead"}, {
+  group = "PwnFiles", 
+  pattern = {"exploit.py", "solve.py", "pwn_*"},
+  callback = function()
+    -- PWN Python 文件模板
+    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    if #lines == 1 and lines[1] == "" then
+      vim.api.nvim_buf_set_lines(0, 0, 0, false, {
+        "#!/usr/bin/env python3",
+        "# -*- coding: utf-8 -*-",
+        "",
+        "from pwn import *",
+        "",
+        "# 设置目标",
+        "# io = process('./target')",
+        "# io = remote('host', port)",
+        "",
+        "# 设置架构和操作系统",
+        "context.arch = 'amd64'",
+        "context.os = 'linux'",
+        "",
+        "# 主要利用代码",
+        "def exploit():",
+        "    pass",
+        "",
+        "if __name__ == '__main__':",
+        "    exploit()",
+        ""
+      })
+    end
+  end
+})
+
+-- 二进制文件自动以十六进制模式打开
+autocmd({"BufReadPost"}, {
+  group = "PwnFiles",
+  pattern = {"*.bin", "*.exe", "*.elf"},
+  command = "Hexmode"
+})
+
+-- 保存时自动格式化 Python 代码
+autocmd({"BufWritePre"}, {
+  group = "PwnFiles", 
+  pattern = {"*.py"},
+  callback = function()
+    vim.lsp.buf.format({ timeout_ms = 2000 })
+  end
+})
+
+-----------------------------------------------------------
+-- PWN 实用函数
+-----------------------------------------------------------
+
+-- 快速启动 GDB 调试目标文件
+function StartGDB()
+  local file = vim.fn.expand("%:r")  -- 当前文件名（无扩展名）
+  vim.cmd("TermExec cmd='gdb " .. file .. "'")
+end
+
+-- 快速运行 Python exploit
+function RunExploit()
+  local file = vim.fn.expand("%")
+  vim.cmd("TermExec cmd='python3 " .. file .. "'")
+end
+
+-- 快速检查文件安全属性
+function CheckSec()
+  local file = vim.fn.expand("%:r")
+  vim.cmd("TermExec cmd='checksec " .. file .. "'")
+end
+
+-- 绑定快捷键
+keymap("n", "<leader>gd", ":lua StartGDB()<CR>", opts)
+keymap("n", "<leader>re", ":lua RunExploit()<CR>", opts)
+keymap("n", "<leader>cs", ":lua CheckSec()<CR>", opts)
+
+print("🎯 CTF PWN Neovim 环境加载完成！")
