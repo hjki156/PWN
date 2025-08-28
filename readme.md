@@ -7,6 +7,12 @@
 克隆本仓库并构建专属镜像，便于长期使用和扩展。
 
 ```bash
+sh install.sh
+```
+
+or
+
+```bash
 # 构建镜像
 docker build -t ctf-pwn:latest .
 
