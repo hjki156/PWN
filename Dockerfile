@@ -13,9 +13,18 @@ RUN apt-get update && \
 
 WORKDIR /root/CTF
 
-RUN wget -O wsrx-cli.tar.gz https://github.com/XDSEC/WebSocketReflectorX/releases/download/0.5.9/wsrx-cli-0.5.9-linux-musl-x86_64.tar.gz && \
-    tar -xzvf wsrx-cli.tar.gz && \
-    rm wsrx-cli.tar.gz
+RUN set -eux; \
+    LATEST_TAG=$$( \
+        curl -s "https://api.github.com/repos/XDSEC/WebSocketReflectorX/releases/latest" | \
+        grep '"tag_name"' | \
+        cut -d '"' -f 4 \
+    ) \
+    echo "latest: $${LATEST_TAG}" \
+    DOWNLOAD_URL="https://github.com/XDSEC/WebSocketReflectorX/releases/download/$${LATEST_TAG}/wsrx-cli-$${LATEST_TAG}-linux-musl-x86_64.tar.gz" \
+    curl -L "$${DOWNLOAD_URL}" -o wsrx-cli.tar.gz \
+    tar -xzf wsrx-cli.tar.gz \
+    rm wsrx-cli.tar.gz \
+    chmod +x wsrx
 
 COPY ./templates/ ./
 
