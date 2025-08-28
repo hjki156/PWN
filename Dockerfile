@@ -6,10 +6,16 @@ ENV LANG=zh_CN.UTF-8 \
     LC_ALL=zh_CN.UTF-8
 
 RUN apt-get update && \
-    apt-get install -y language-pack-zh-hans wget && \
+    apt-get install -y language-pack-zh-hans wget nvim && \
+    apt-get remove -y vim && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     echo "set encoding=utf-8" > ~/.vimrc
+
+RUN git clone https://github.com/folke/lazy.nvim.git \
+    ~/.local/share/nvim/site/pack/packer/start/lazy.nvim
+
+COPY ./config/nvim ~/.config/nvim/
 
 WORKDIR /root/CTF
 
