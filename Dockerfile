@@ -8,7 +8,8 @@ ENV LANG=zh_CN.UTF-8 \
 RUN apt-get update && \
     apt-get install -y language-pack-zh-hans wget && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    echo "set encoding=utf-8" > ~/.vimrc
 
 WORKDIR /root/CTF
 
@@ -16,4 +17,6 @@ RUN wget -O wsrx-cli.tar.gz https://github.com/XDSEC/WebSocketReflectorX/release
     tar -xzvf wsrx-cli.tar.gz && \
     rm wsrx-cli.tar.gz
 
-CMD echo "Start your Pwn travel~" && /bin/bash
+COPY ./templates/ ./
+
+CMD ["bash", "-c", "echo '🎉 Pwn 环境已就绪！' && exec /bin/bash"]
