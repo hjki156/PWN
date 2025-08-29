@@ -1,201 +1,172 @@
-# 使用Ubuntu最新LTS版本作为基础镜像，提供更好的稳定性和安全更新
-FROM ubuntu:24.04
+# 基于 Arch Linux 的 CTF Pwn 环境
+FROM archlinux:latest
 
-# 设置环境变量
-ENV DEBIAN_FRONTEND=noninteractive \
-    LANG=C.UTF-8 \
+# 环境变量
+ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     SHELL=/bin/bash \
-    TZ=Asia/Shanghai
+    TZ=Asia/Shanghai \
+    VENV_PATH=/opt/venv
 
-# 合并所有apt操作以减少镜像层数，提高构建效率
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        # 编译工具链
-        build-essential \
+# 避免交互，更新系统并安装所需软件
+RUN set -eux; \
+    pacman -Syu --noconfirm && \
+    pacman -S --noconfirm \
+        base-devel \
         gcc-multilib \
-        g++-multilib \
-        libc6-dev-i386 \
-        # 版本控制
         git \
-        # Python环境
-        python3 \
-        python3-pip \
-        python3-dev \
-        python3-venv \
-        # 网络工具
+        python \
+        python-pip \
+        python-virtualenv \
+        python-pyopenssl \
         wget \
         curl \
-        netcat-openbsd \
+        netcat \
         socat \
-        # 调试工具
         gdb \
         gdb-multiarch \
         strace \
         ltrace \
-        # 二进制分析工具
         binutils \
         patchelf \
         file \
         xxd \
-        bsdextrautils \
-        # 终端和编辑器
+        util-linux \
         tmux \
         neovim \
         nano \
-        # 系统工具
         sudo \
         tree \
         htop \
         unzip \
         zip \
-        # 依赖库
-        lsb-release \
-        ca-certificates \
-        libssl-dev \
-        libffi-dev \
-        zlib1g-dev \
-        # 中文支持
-        language-pack-zh-hans \
-        # Ruby环境（用于seccomp-tools）
+        openssl \
+        libffi \
+        zlib \
         ruby \
-        ruby-dev && \
-    # 清理apt缓存
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean
+        ruby-devel || true; \
+    # 清理 pacman 缓存以减小镜像
+    rm -rf /var/cache/pacman/pkg/*
 
-# 手动安装radare2（因为Ubuntu 22.04仓库中没有）
-RUN wget -q https://github.com/radareorg/radare2/releases/download/5.9.0/radare2_5.9.0_amd64.deb && \
-    dpkg -i radare2_5.9.0_amd64.deb || true && \
-    apt-get update && \
-    apt-get -f install -y && \
-    rm radare2_5.9.0_amd64.deb
+# 安装 Ruby 工具
+RUN set -eux; \
+    gem install seccomp-tools one_gadget && \
+    gem cleanup || true
 
-# 安装Ruby工具
-RUN gem install seccomp-tools one_gadget && \
-    gem cleanup
-
-# 升级pip并安装Python工具
-RUN python3 -m pip install --upgrade pip setuptools wheel && \
-    pip3 install --no-cache-dir \
-        # 主要pwn工具
+# 在镜像内创建 venv 并用 venv 的 pip 安装 Python 包以避免系统改动
+RUN set -eux; \
+    python -m venv "${VENV_PATH}" && \
+    "${VENV_PATH}/bin/python" -m pip install --upgrade pip setuptools wheel && \
+    "${VENV_PATH}/bin/pip" install --no-cache-dir \
         pwntools \
-        # ROP链生成器
         ropper \
-        # 格式化字符串漏洞利用
         LibcSearcher \
-        # 其他有用的工具
         requests \
         z3-solver \
         capstone \
         keystone-engine \
         unicorn && \
-    # 清理pip缓存
-    pip3 cache purge
+    "${VENV_PATH}/bin/pip" cache purge && \
+    ln -sf "${VENV_PATH}/bin/python" /usr/local/bin/python3-venv && \
+    ln -sf "${VENV_PATH}/bin/pip" /usr/local/bin/pip3-venv
 
-# 安装checksec安全检查工具
-RUN curl -s -o /usr/local/bin/checksec https://raw.githubusercontent.com/slimm609/checksec.sh/master/checksec && \
+# 安装 checksec（脚本）
+RUN set -eux; \
+    curl -s -o /usr/local/bin/checksec https://raw.githubusercontent.com/slimm609/checksec.sh/master/checksec && \
     chmod +x /usr/local/bin/checksec
 
-# 安装GEF（GDB增强框架）
-RUN wget -O /tmp/gef.py https://github.com/hugsy/gef/raw/main/gef.py && \
-    # 为root用户配置GEF
+# 安装 GEF（GDB 增强框架）
+RUN set -eux; \
+    wget -O /tmp/gef.py https://github.com/hugsy/gef/raw/main/gef.py && \
     echo 'source /tmp/gef.py' > /root/.gdbinit && \
     echo 'set disassembly-flavor intel' >> /root/.gdbinit && \
     echo 'set confirm off' >> /root/.gdbinit
 
-# 创建非特权用户pwner
-RUN useradd -m -s /bin/bash -G sudo pwner && \
+# 创建非特权用户 pwner 并为其配置 GEF
+RUN set -eux; \
+    useradd -m -s /bin/bash -G wheel pwner && \
     echo "pwner ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-    # 为pwner用户配置GEF
     echo 'source /tmp/gef.py' > /home/pwner/.gdbinit && \
     echo 'set disassembly-flavor intel' >> /home/pwner/.gdbinit && \
     echo 'set confirm off' >> /home/pwner/.gdbinit && \
     chown pwner:pwner /home/pwner/.gdbinit
 
-# 安装和配置Neovim
-# RUN git clone --depth=1 https://github.com/folke/lazy.nvim.git \
-#         ~/.local/share/nvim/site/pack/packer/start/lazy.nvim && \
-#     git clone --depth=1 https://github.com/folke/lazy.nvim.git \
-#         /home/pwner/.local/share/nvim/site/pack/packer/start/lazy.nvim && \
-#     chown -R pwner:pwner /home/pwner/.local/
-
-# 复制Neovim配置（如果存在）
+# 复制 Neovim 配置（如果存在）
 COPY --chown=root:root ./config/nvim/ /root/.config/nvim/
 COPY --chown=pwner:pwner ./config/nvim/ /home/pwner/.config/nvim/
 
 # 设置工作目录
 WORKDIR /home/CTF
 
-# 安装WebSocketReflectorX工具
+# 安装 WebSocketReflectorX 工具（下载二进制并放到 path）
 RUN set -eux; \
-    # 获取最新版本标签
-    LATEST_TAG=$(curl -s "https://api.github.com/repos/XDSEC/WebSocketReflectorX/releases/latest" | \
-                 grep '"tag_name"' | \
-                 cut -d '"' -f 4); \
-    echo "正在安装 WebSocketReflectorX 版本: ${LATEST_TAG}"; \
-    # 构建下载URL
-    DOWNLOAD_URL="https://github.com/XDSEC/WebSocketReflectorX/releases/download/${LATEST_TAG}/wsrx-cli-${LATEST_TAG}-linux-musl-x86_64.tar.gz"; \
-    # 下载并解压
-    curl -L "${DOWNLOAD_URL}" -o wsrx-cli.tar.gz && \
-    tar -xzf wsrx-cli.tar.gz && \
-    rm wsrx-cli.tar.gz && \
-    chmod +x wsrx && \
-    # 将工具链接到PATH
-    ln -s /root/CTF/wsrx /usr/local/bin/wsrx
+    LATEST_TAG=$(curl -s "https://api.github.com/repos/XDSEC/WebSocketReflectorX/releases/latest" | grep '"tag_name"' | cut -d '"' -f 4) && \
+    echo "Installing WebSocketReflectorX ${LATEST_TAG}" && \
+    DOWNLOAD_URL="https://github.com/XDSEC/WebSocketReflectorX/releases/download/${LATEST_TAG}/wsrx-cli-${LATEST_TAG}-linux-musl-x86_64.tar.gz" && \
+    curl -L "${DOWNLOAD_URL}" -o /tmp/wsrx-cli.tar.gz && \
+    tar -xzf /tmp/wsrx-cli.tar.gz -C && \
+    rm -f /tmp/wsrx-cli.tar.gz && \
+    chmod +x /tmp/wsrx && \
+    mv -sf /tmp/wsrx /usr/local/bin/wsrx || true
+
+# radare2: 尝试使用 pacman 安装，如果不存在才从 release 下载预编译二进制
+RUN set -eux; \
+    if pacman -Ss --noconfirm radare2 | grep -q "extra/radare2"; then \
+        pacman -S --noconfirm radare2 || true; \
+    else \
+        # fallback: 从 release 下载可执行（若上游提供 tar.gz）
+        R2_URL="https://github.com/radareorg/radare2/releases/download/5.9.0/radare2-5.9.0-x86_64-linux.tar.gz"; \
+        curl -L "${R2_URL}" -o /tmp/radare2.tar.gz || true; \
+        if [ -f /tmp/radare2.tar.gz ]; then \
+            tar -xzf /tmp/radare2.tar.gz -C /usr/local/bin --strip-components=1 || true; \
+            rm -f /tmp/radare2.tar.gz || true; \
+        fi; \
+    fi
 
 # 复制模板文件
 COPY --chown=root:root ./templates/ /home/CTF/
 COPY --chown=pwner:pwner ./templates/ /home/pwner/CTF/
 
-# 创建一些有用的别名和环境设置
-RUN echo 'alias ll="ls -la"' >> /root/.bashrc && \
-    echo 'alias la="ls -A"' >> /root/.bashrc && \
-    echo 'alias l="ls -CF"' >> /root/.bashrc && \
-    echo 'alias ..="cd .."' >> /root/.bashrc && \
-    echo 'alias ...="cd ../.."' >> /root/.bashrc && \
-    echo 'alias grep="grep --color=auto"' >> /root/.bashrc && \
-    echo 'alias fgrep="fgrep --color=auto"' >> /root/.bashrc && \
-    echo 'alias egrep="egrep --color=auto"' >> /root/.bashrc && \
-    echo 'export EDITOR=nvim' >> /root/.bashrc && \
-    echo 'export PAGER=less' >> /root/.bashrc && \
-    # 同样为pwner用户设置
-    echo 'alias ll="ls -la"' >> /home/pwner/.bashrc && \
-    echo 'alias la="ls -A"' >> /home/pwner/.bashrc && \
-    echo 'alias l="ls -CF"' >> /home/pwner/.bashrc && \
-    echo 'alias ..="cd .."' >> /home/pwner/.bashrc && \
-    echo 'alias ...="cd ../.."' >> /home/pwner/.bashrc && \
-    echo 'alias grep="grep --color=auto"' >> /home/pwner/.bashrc && \
-    echo 'alias fgrep="fgrep --color=auto"' >> /home/pwner/.bashrc && \
-    echo 'alias egrep="egrep --color=auto"' >> /home/pwner/.bashrc && \
-    echo 'export EDITOR=nvim' >> /home/pwner/.bashrc && \
-    echo 'export PAGER=less' >> /home/pwner/.bashrc && \
-    chown pwner:pwner /home/pwner/.bashrc
+# 创建别名和环境设置（root 和 pwner）
+RUN set -eux; \
+    for user_home in /root /home/pwner; do \
+      rc="$user_home/.bashrc"; \
+      echo 'alias ll="ls -la"' >> "$rc"; \
+      echo 'alias la="ls -A"' >> "$rc"; \
+      echo 'alias l="ls -CF"' >> "$rc"; \
+      echo 'alias ..="cd .."' >> "$rc"; \
+      echo 'alias ...="cd ../.."' >> "$rc"; \
+      echo 'alias grep="grep --color=auto"' >> "$rc"; \
+      echo 'alias fgrep="fgrep --color=auto"' >> "$rc"; \
+      echo 'alias egrep="egrep --color=auto"' >> "$rc"; \
+      echo 'export EDITOR=nvim' >> "$rc"; \
+      echo 'export PAGER=less' >> "$rc"; \
+    done && \
+    chown pwner:pwner /home/pwner/.bashrc || true
 
-# 创建CTF工作目录结构
+# 创建 CTF 工作目录结构
 SHELL [ "/bin/bash", "-c" ]
-RUN mkdir -p ./{exploits,tools,challenges,scripts} && \
+RUN set -eux; \
+    mkdir -p /home/CTF/{exploits,tools,challenges,scripts} && \
     mkdir -p /home/pwner/CTF/{exploits,tools,challenges,scripts} && \
     chown -R pwner:pwner /home/pwner/CTF
 
-# 为 root 用户配置自动进入 /root/CTF
+# 自动进入目录
 RUN echo 'cd /home/CTF 2>/dev/null || true' >> /root/.bashrc
-
-# 为 pwner 用户配置自动进入 /home/pwner/CTF
 RUN echo 'cd /home/pwner/CTF 2>/dev/null || true' >> /home/pwner/.bashrc
 
-# 暴露常用端口（可选）
+# 暴露端口（可选）
 EXPOSE 1337 4444 8080 9999
 
-# 设置启动消息和命令
+# 启动命令
 CMD ["bash", "-c", "echo '🎉 CTF Pwn环境已就绪！' && echo '🔧 已安装工具：pwntools, gdb+gef, radare2, checksec等' && echo '👤 用户：root 和 pwner（sudo权限）' && echo '📁 工作目录：/home/CTF' && echo '🚀 开始你的CTF之旅吧！' && exec /bin/bash"]
 
-# 添加健康检查
+# 健康检查使用 venv 中的 python
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python3 -c "import pwn; print('pwntools works!')" || exit 1
+    CMD /opt/venv/bin/python -c "import pwn; print('pwntools works!')" || exit 1
 
 # 元数据标签
 LABEL maintainer="CTF Team" \
-      description="完整的CTF Pwn环境，包含调试和漏洞利用工具" \
+      description="Arch-based CTF Pwn environment" \
       version="2.0" \
       category="security/ctf"
