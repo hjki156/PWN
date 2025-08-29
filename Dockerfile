@@ -13,10 +13,6 @@ LABEL maintainer="CTF Elite Team" \
       category="security/ctf/pwn" \
       github="https://github.com/ctf-tools"
 
-# Use bash as the default shell
-# 使用bash作为默认shell
-SHELL [ "bash", "-c" ]
-
 # Build arguments for customization
 # 用于自定义的构建参数
 ARG DEBIAN_FRONTEND=noninteractive
@@ -47,11 +43,6 @@ ENV LANG=C.UTF-8 \
 # System update and base packages installation
 # 系统更新和基础包安装
 RUN set -eux; \
-    # Configure pacman for better performance
-    # 配置pacman以获得更好的性能
-    echo 'Server = https://mirrors.tuna.tsinghua.edu.cn/archlinux/$repo/os/$arch' > /etc/pacman.d/mirrorlist && \
-    echo 'Server = https://mirrors.ustc.edu.cn/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist && \
-    # 使用清华大学和中科大的Arch Linux镜像源，提高下载速度
     # Update system
     # 更新系统
     pacman -Syu --noconfirm && \
@@ -171,6 +162,10 @@ RUN set -eux; \
 # 创建临时用户并安装yay(AUR助手)，然后清理临时用户
 # yay是Arch Linux的AUR(Arch User Repository)助手，用于安装AUR中的软件包
 
+# Use bash as the default shell
+# 使用bash作为默认shell
+SHELL [ "bash", "-c" ]
+
 # Create directory structure
 # 创建目录结构
 RUN set -eux; \
@@ -181,6 +176,7 @@ RUN set -eux; \
     mkdir -p /home/CTF/.templates/{pwn,shellcode,rop}
 # 创建工具目录、不同版本的glibc目录、词表目录、CTF题目分类目录和模板目录
 
+SHELL [ "bash" ]
 # Install multiple glibc versions for different challenges
 # 安装多个glibc版本以适应不同的挑战
 RUN set -eux; \
