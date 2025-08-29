@@ -351,8 +351,6 @@ RUN set -eux; \
     cd ${WORDLISTS_DIR} && \
     # SecLists - 安全测试常用词表集合
     git clone --depth 1 https://github.com/danielmiessler/SecLists && \
-    # 常见密码
-    wget https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt && \
     # 模糊测试载荷
     git clone --depth 1 https://github.com/fuzzdb-project/fuzzdb
 # 下载常用词表，包括SecLists、常见密码列表和模糊测试载荷，用于密码破解和模糊测试
