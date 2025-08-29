@@ -226,7 +226,6 @@ RUN set -eux; \
         keystone-engine \
         unicorn \
         # 模糊测试
-        afl-utils \
         python-afl \
         boofuzz \
         # Web工具
