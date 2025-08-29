@@ -24,6 +24,10 @@ ARG USER_UID=1000
 ARG USER_GID=1000
 # 用户GID
 
+# Use bash as the default shell
+# 使用bash作为默认shell
+SHELL [ "bash", "-c" ]
+
 # Environment variables
 # 环境变量设置
 ENV LANG=C.UTF-8 \
@@ -74,7 +78,7 @@ RUN set -eux; \
         # 网络工具
         wget \
         curl \
-        netcat \
+        openbsd-netcat \    # 修改：明确指定 netcat 提供者
         socat \
         nmap \
         masscan \
@@ -89,7 +93,6 @@ RUN set -eux; \
         strace \
         ltrace \
         valgrind \
-        rr \
         # 二进制分析工具
         binutils \
         radare2 \
@@ -99,8 +102,8 @@ RUN set -eux; \
         hexedit \
         # 文件工具
         file \
-        xxd \
-        hexdump \
+        vim \               # 修改：用 vim 替代 xxd（提供 xxd 功能）
+        # hexdump \
         dos2unix \
         p7zip \
         unrar \
@@ -157,14 +160,12 @@ RUN set -eux; \
     su - builduser -c "git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin && \
         cd /tmp/yay-bin && \
         makepkg -si --noconfirm" && \
+    su - builduser -c "yay -S --noconfirm rr" && \
     userdel -r builduser && \
     sed -i '/builduser/d' /etc/sudoers
 # 创建临时用户并安装yay(AUR助手)，然后清理临时用户
 # yay是Arch Linux的AUR(Arch User Repository)助手，用于安装AUR中的软件包
 
-# Use bash as the default shell
-# 使用bash作为默认shell
-SHELL [ "bash", "-c" ]
 
 # Create directory structure
 # 创建目录结构
@@ -176,7 +177,6 @@ RUN set -eux; \
     mkdir -p /home/CTF/.templates/{pwn,shellcode,rop}
 # 创建工具目录、不同版本的glibc目录、词表目录、CTF题目分类目录和模板目录
 
-SHELL [ "bash" ]
 # Install multiple glibc versions for different challenges
 # 安装多个glibc版本以适应不同的挑战
 RUN set -eux; \
