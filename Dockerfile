@@ -326,27 +326,24 @@ RUN set -eux; \
 # 安装WebSocketReflectorX
 RUN set -eux; \
     LATEST_TAG=$(curl -s "https://api.github.com/repos/XDSEC/WebSocketReflectorX/releases/latest" | grep '"tag_name"' | cut -d '"' -f 4) && \
-    if [ -n "${LATEST_TAG}" ]; then \
-        DOWNLOAD_URL="https://github.com/XDSEC/WebSocketReflectorX/releases/download/${LATEST_TAG}/wsrx-cli-${LATEST_TAG}-linux-musl-x86_64.tar.gz" && \
-        curl -L "${DOWNLOAD_URL}" -o /tmp/wsrx-cli.tar.gz && \
-        tar -xzf /tmp/wsrx-cli.tar.gz -C /tmp && \
-        rm -f /tmp/wsrx-cli.tar.gz && \
-        chmod +x /tmp/wsrx && \
-        mv /tmp/wsrx ${TOOLS_DIR}/bin/wsrx \
-    fi
+    [ -n "${LATEST_TAG}" ] && \
+    DOWNLOAD_URL="https://github.com/XDSEC/WebSocketReflectorX/releases/download/${LATEST_TAG}/wsrx-cli-${LATEST_TAG}-linux-musl-x86_64.tar.gz" && \
+    curl -L "${DOWNLOAD_URL}" -o /tmp/wsrx-cli.tar.gz && \
+    tar -xzf /tmp/wsrx-cli.tar.gz -C /tmp && \
+    rm -f /tmp/wsrx-cli.tar.gz && \
+    chmod +x /tmp/wsrx && \
+    mv /tmp/wsrx ${TOOLS_DIR}/bin/wsrx
 # 下载并安装WebSocketReflectorX，这是一个用于网络流量转发的工具
 
 # Install rr - Lightweight recording and deterministic debugging tool
 # 安装rr - 轻量级录制和确定性调试工具
 RUN set -eux; \
     LATEST_TAG=$(curl -s "https://api.github.com/repos/rr-debugger/rr/releases/latest" | grep '"tag_name"' | cut -d '"' -f 4) && \
-    if [ -n "${LATEST_TAG}" ]; then \
-        DOWNLOAD_URL="https://github.com/rr-debugger/rr/releases/download/${LATEST_TAG}/rr-${LATEST_TAG}-Linux-x86_64.tar.gz" && \
-        curl -L "${DOWNLOAD_URL}" -o /tmp/rr.tar.gz && \
-        tar -xzf /tmp/rr.tar.gz -C /opt && \
-        ln -s /opt/rr-${LATEST_TAG}-Linux-x86_64/bin/rr /usr/local/bin/rr; \
-    fi
-
+    [ -n "${LATEST_TAG}" ] &&\
+    DOWNLOAD_URL="https://github.com/rr-debugger/rr/releases/download/${LATEST_TAG}/rr-${LATEST_TAG}-Linux-x86_64.tar.gz" && \
+    curl -L "${DOWNLOAD_URL}" -o /tmp/rr.tar.gz && \
+    tar -xzf /tmp/rr.tar.gz -C /opt && \
+    ln -s /opt/rr-${LATEST_TAG}-Linux-x86_64/bin/rr /usr/local/bin/rr;
 
 # Download common wordlists
 # 下载常用词表
