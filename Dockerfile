@@ -221,14 +221,10 @@ RUN set -eux; \
         pycryptodome \
         gmpy2 \
         sympy \
-        sage \
         # 二进制分析
         capstone \
         keystone-engine \
         unicorn \
-        angr \
-        manticore \
-        miasm \
         # 模糊测试
         afl-utils \
         python-afl \
@@ -259,9 +255,6 @@ RUN set -eux; \
         click \
         pyyaml \
         toml \
-        # 调试助手
-        gdb-pt-dump \
-        exploitable \
         # 其他有用的包
         numpy \
         scipy \
@@ -271,7 +264,7 @@ RUN set -eux; \
         pypng \
         qrcode && \
     "${VENV_PATH}/bin/pip" cache purge
-# 创建Python虚拟环境并安装大量CTF Pwn相关的Python包，包括pwntools、二进制分析工具、模糊测试工具等
+    # 创建Python虚拟环境并安装大量CTF Pwn相关的Python包，包括pwntools、二进制分析工具、模糊测试工具等
 
 # Create convenient symlinks
 # 创建便捷的符号链接
