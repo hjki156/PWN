@@ -121,8 +121,8 @@ RUN useradd -m -s /bin/bash -G sudo pwner && \
 #     chown -R pwner:pwner /home/pwner/.local/
 
 # 复制Neovim配置（如果存在）
-# COPY --chown=root:root ./config/nvim/ /root/.config/nvim/
-# COPY --chown=pwner:pwner ./config/nvim/ /home/pwner/.config/nvim/
+COPY --chown=root:root ./config/nvim/ /root/.config/nvim/
+COPY --chown=pwner:pwner ./config/nvim/ /home/pwner/.config/nvim/
 
 # 设置工作目录
 WORKDIR /home/CTF
