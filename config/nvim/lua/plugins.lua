@@ -43,10 +43,7 @@ return {
   -- ===============================
   -- 语法高亮和解析
   -- ===============================
-  {
-    'nvim-treesitter/nvim-treesitter',
-    run = ':TSUpdate'
-  },
+  {"nvim-treesitter/nvim-treesitter", branch = 'master', lazy = false, build = ":TSUpdate"},
   
   -- ===============================
   -- 调试支持

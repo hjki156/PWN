@@ -114,18 +114,18 @@ RUN useradd -m -s /bin/bash -G sudo pwner && \
     chown pwner:pwner /home/pwner/.gdbinit
 
 # 安装和配置Neovim
-RUN git clone --depth=1 https://github.com/folke/lazy.nvim.git \
-        ~/.local/share/nvim/site/pack/packer/start/lazy.nvim && \
-    git clone --depth=1 https://github.com/folke/lazy.nvim.git \
-        /home/pwner/.local/share/nvim/site/pack/packer/start/lazy.nvim && \
-    chown -R pwner:pwner /home/pwner/.local/
+# RUN git clone --depth=1 https://github.com/folke/lazy.nvim.git \
+#         ~/.local/share/nvim/site/pack/packer/start/lazy.nvim && \
+#     git clone --depth=1 https://github.com/folke/lazy.nvim.git \
+#         /home/pwner/.local/share/nvim/site/pack/packer/start/lazy.nvim && \
+#     chown -R pwner:pwner /home/pwner/.local/
 
 # 复制Neovim配置（如果存在）
-COPY --chown=root:root ./config/nvim/ /root/.config/nvim/
-COPY --chown=pwner:pwner ./config/nvim/ /home/pwner/.config/nvim/
+# COPY --chown=root:root ./config/nvim/ /root/.config/nvim/
+# COPY --chown=pwner:pwner ./config/nvim/ /home/pwner/.config/nvim/
 
 # 设置工作目录
-WORKDIR /root/CTF
+WORKDIR /home/CTF
 
 # 安装WebSocketReflectorX工具
 RUN set -eux; \
@@ -145,7 +145,8 @@ RUN set -eux; \
     ln -s /root/CTF/wsrx /usr/local/bin/wsrx
 
 # 复制模板文件
-COPY --chown=root:root ./templates/ ./
+COPY --chown=root:root ./templates/ /home/CTF/
+COPY --chown=pwner:pwner ./templates/ /home/pwner/CTF/
 
 # 创建一些有用的别名和环境设置
 RUN echo 'alias ll="ls -la"' >> /root/.bashrc && \
@@ -172,15 +173,22 @@ RUN echo 'alias ll="ls -la"' >> /root/.bashrc && \
     chown pwner:pwner /home/pwner/.bashrc
 
 # 创建CTF工作目录结构
-RUN mkdir -p /root/CTF/{exploits,tools,challenges,scripts} && \
+SHELL [ "/bin/bash", "-c" ]
+RUN mkdir -p ./{exploits,tools,challenges,scripts} && \
     mkdir -p /home/pwner/CTF/{exploits,tools,challenges,scripts} && \
     chown -R pwner:pwner /home/pwner/CTF
 
+# 为 root 用户配置自动进入 /root/CTF
+RUN echo 'cd /home/CTF 2>/dev/null || true' >> /root/.bashrc
+
+# 为 pwner 用户配置自动进入 /home/pwner/CTF
+RUN echo 'cd /home/pwner/CTF 2>/dev/null || true' >> /home/pwner/.bashrc
+
 # 暴露常用端口（可选）
-EXPOSE 1337 4444 8080
+EXPOSE 1337 4444 8080 9999
 
 # 设置启动消息和命令
-CMD ["bash", "-c", "echo '🎉 CTF Pwn环境已就绪！' && echo '🔧 已安装工具：pwntools, gdb+gef, radare2, checksec等' && echo '👤 用户：root 和 pwner（sudo权限）' && echo '📁 工作目录：/root/CTF' && echo '🚀 开始你的CTF之旅吧！' && exec /bin/bash"]
+CMD ["bash", "-c", "echo '🎉 CTF Pwn环境已就绪！' && echo '🔧 已安装工具：pwntools, gdb+gef, radare2, checksec等' && echo '👤 用户：root 和 pwner（sudo权限）' && echo '📁 工作目录：/home/CTF' && echo '🚀 开始你的CTF之旅吧！' && exec /bin/bash"]
 
 # 添加健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

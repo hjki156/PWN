@@ -59,7 +59,10 @@ require('packer').startup(function(use)
   -- ===============================
   use {
     'nvim-treesitter/nvim-treesitter',
-    run = ':TSUpdate'  -- 更新为推荐的 TSUpdate 命令 (移除弃用的 with_sync)
+    run = function()
+      -- 调用安装器更新 parsers
+      require('nvim-treesitter.install').update()
+    end,
   }
   use 'morhetz/gruvbox'           -- 护眼主题
   use 'folke/tokyonight.nvim'     -- 现代主题
@@ -104,7 +107,7 @@ local opt = vim.opt
 
 -- 行号和界面
 opt.number = true
-opt.relativenumber = true       -- 相对行号，方便跳转
+-- opt.relativenumber = true       -- 相对行号，方便跳转
 opt.cursorline = true           -- 高亮当前行
 opt.colorcolumn = "80"          -- 80列提示线
 
