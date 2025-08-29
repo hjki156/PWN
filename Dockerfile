@@ -160,7 +160,6 @@ RUN set -eux; \
     su - builduser -c "git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin && \
         cd /tmp/yay-bin && \
         makepkg -si --noconfirm" && \
-    su - builduser -c "yay -S --noconfirm rr" && \
     userdel -r builduser && \
     sed -i '/builduser/d' /etc/sudoers
 # 创建临时用户并安装yay(AUR助手)，然后清理临时用户
@@ -339,9 +338,21 @@ RUN set -eux; \
         tar -xzf /tmp/wsrx-cli.tar.gz -C /tmp && \
         rm -f /tmp/wsrx-cli.tar.gz && \
         chmod +x /tmp/wsrx && \
-        mv /tmp/wsrx ${TOOLS_DIR}/bin/wsrx; \
+        mv /tmp/wsrx ${TOOLS_DIR}/bin/wsrx \
     fi
-# 下载并安装WebSocketReflectorX，这是一个用于网络流量转发的工具，在CTF中可能用于绕过网络限制
+# 下载并安装WebSocketReflectorX，这是一个用于网络流量转发的工具
+
+# Install rr - Lightweight recording and deterministic debugging tool
+# 安装rr - 轻量级录制和确定性调试工具
+RUN set -eux; \
+    LATEST_TAG=$(curl -s "https://api.github.com/repos/rr-debugger/rr/releases/latest" | grep '"tag_name"' | cut -d '"' -f 4) && \
+    if [ -n "${LATEST_TAG}" ]; then \
+        DOWNLOAD_URL="https://github.com/rr-debugger/rr/releases/download/${LATEST_TAG}/rr-${LATEST_TAG}-Linux-x86_64.tar.gz" && \
+        curl -L "${DOWNLOAD_URL}" -o /tmp/rr.tar.gz && \
+        tar -xzf /tmp/rr.tar.gz -C /opt && \
+        ln -s /opt/rr-${LATEST_TAG}-Linux-x86_64/bin/rr /usr/local/bin/rr; \
+    fi
+
 
 # Download common wordlists
 # 下载常用词表
@@ -451,10 +462,10 @@ RUN set -eux; \
 ARG BUILD_DATE
 ARG VCS_REF
 LABEL org.opencontainers.image.created=$BUILD_DATE \
-      org.opencontainers.image.authors="CTF Elite Team" \
-      org.opencontainers.image.url="https://github.com/ctf-tools" \
-      org.opencontainers.image.documentation="https://github.com/ctf-tools/blob/main/README.md" \
-      org.opencontainers.image.source="https://github.com/ctf-tools.git" \
+      org.opencontainers.image.authors="Tobeko" \
+      org.opencontainers.image.url="https://github.com/hjki156/PWN" \
+      org.opencontainers.image.documentation="https://github.com/hjki156/PWN/blob/main/README.md" \
+      org.opencontainers.image.source="https://github.com/hjki156/PWN.git" \
       org.opencontainers.image.version=$VERSION \
       org.opencontainers.image.revision=$VCS_REF \
       org.opencontainers.image.licenses="GPL-3.0" \
