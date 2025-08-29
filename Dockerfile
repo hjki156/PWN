@@ -24,6 +24,9 @@ ARG USER_UID=1000
 ARG USER_GID=1000
 # 用户GID
 
+# 定义构建时变量
+ARG VERSION=3.0
+
 # Use bash as the default shell
 # 使用bash作为默认shell
 SHELL [ "bash", "-c" ]
@@ -39,8 +42,8 @@ ENV LANG=C.UTF-8 \
     WORDLISTS_DIR=/opt/wordlists \
     GLIBC_DIR=/opt/glibc \
     PATH="/opt/venv/bin:/opt/tools/bin:${PATH}" \
-    PYTHONPATH="/opt/tools/lib/python:${PYTHONPATH}" \
-    LD_LIBRARY_PATH="/opt/glibc/2.23:/opt/glibc/2.27:/opt/glibc/2.31:${LD_LIBRARY_PATH}"
+    PYTHONPATH="/opt/tools/lib/python" \
+    LD_LIBRARY_PATH="/opt/glibc/2.23:/opt/glibc/2.27:/opt/glibc/2.31"
 # 设置语言环境、时区、工具路径、虚拟环境路径、词表路径、glibc路径等环境变量
 # 特别是将工具目录和虚拟环境目录添加到PATH中，方便使用工具
 
@@ -214,7 +217,6 @@ RUN set -eux; \
         ROPgadget \
         # 库搜索
         LibcSearcher \
-        libc-database \
         # 加密工具
         pycryptodome \
         gmpy2 \
