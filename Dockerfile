@@ -78,7 +78,7 @@ RUN set -eux; \
         # 网络工具
         wget \
         curl \
-        openbsd-netcat \    # 修改：明确指定 netcat 提供者
+        openbsd-netcat \
         socat \
         nmap \
         masscan \
@@ -102,7 +102,7 @@ RUN set -eux; \
         hexedit \
         # 文件工具
         file \
-        vim \               # 修改：用 vim 替代 xxd（提供 xxd 功能）
+        vim \
         # hexdump \
         dos2unix \
         p7zip \
