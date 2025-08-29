@@ -361,7 +361,7 @@ RUN set -eux; \
 
 # Configure GDB with multiple plugins support
 # 配置GDB以支持多个插件
-COPY ./config/gdbinit /root/.gdbinit
+COPY ./config/.gdbinit /root/.gdbinit
 # 复制GDB配置文件到root用户的.gdbinit，用于配置GDB的默认行为和插件加载
 
 # Create non-root user with sudo privileges
